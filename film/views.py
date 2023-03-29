@@ -1,5 +1,6 @@
 from django.http import JsonResponse
-from rest_framework import status
+from rest_framework import status, filters
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.authentication import TokenAuthentication
@@ -46,33 +47,40 @@ class AktyorlarAPIView(APIView):
             }
             return Response(content)
         return Response({"success":"False", "xatolik":serializer.errors})
-
-class AktyorDetailAPIView(APIView):
-    def get(self,request, pk):
-        aktyor = Aktyor.objects.get(id=pk)
-        serializer = AktyorSerializer(aktyor)
-        return Response(serializer.data)
-    def put(self,request, pk):
-        aktyor = Aktyor.objects.get(id=pk)
-        yangi = request.data
-        serializer = AktyorSerializer(aktyor, yangi)
-        if serializer.is_valid():
-            aktyor.ism = serializer.validated_data.get('ism')
-            aktyor.davlat = serializer.validated_data.get('davlat')
-            aktyor.jins = serializer.validated_data.get('jins')
-            aktyor.tugilgan_yil = serializer.validated_data.get('tugilgan_yil')
-            aktyor.save()
-            return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class AktyorVIEWsET(ModelViewSet):
+    queryset = Aktyor.objects.all()
+    serializer_class = AktyorSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['ism']
+    ordering_fields = ['tugilgan_yil']
 
 
-    def delete(self,request,pk):
-        aktyor = Aktyor.objects.filter(id=pk).delete()
-        if aktyor[0]==0:
-            return Response({"xabar":"Bunaqa aktyor yo'q!"})
-
-
-        return Response({"xabar": "Aktyor o'chirildi"})
+# class AktyorDetailAPIView(APIView):
+#     def get(self,request, pk):
+#         aktyor = Aktyor.objects.get(id=pk)
+#         serializer = AktyorSerializer(aktyor)
+#         return Response(serializer.data)
+#     def put(self,request, pk):
+#         aktyor = Aktyor.objects.get(id=pk)
+#         yangi = request.data
+#         serializer = AktyorSerializer(aktyor, yangi)
+#         if serializer.is_valid():
+#             aktyor.ism = serializer.validated_data.get('ism')
+#             aktyor.davlat = serializer.validated_data.get('davlat')
+#             aktyor.jins = serializer.validated_data.get('jins')
+#             aktyor.tugilgan_yil = serializer.validated_data.get('tugilgan_yil')
+#             aktyor.save()
+#             return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#
+#
+#     def delete(self,request,pk):
+#         aktyor = Aktyor.objects.filter(id=pk).delete()
+#         if aktyor[0]==0:
+#             return Response({"xabar":"Bunaqa aktyor yo'q!"})
+#
+#
+#         return Response({"xabar": "Aktyor o'chirildi"})
 class TariflarAPIView(APIView):
     def get(self,request):
         tarif = Tarif.objects.all()
@@ -114,32 +122,61 @@ class TarifAPIView(APIView):
         tarif = Tarif.objects.get(id=pk)
         serializer = TarifSerializer(tarif)
         return Response(serializer.data)
+#
+# class KinolarApiView(APIView):
+#     def get(self, request):
+#         kinolar = Kino.objects.all()
+#         serializer = KinoSerializer(kinolar, many=True)
+#         return Response(serializer.data)
+#
+#     def post(self, request):
+#         serializer = KinoCreateSerializer(data=request.data)
+#         if serializer.is_valid():
+#
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# class KinoDetailApiView(APIView):
+#     def get(self,request, pk):
+#         kino = Kino.objects.get(id=pk)
+#         serializer = KinoSerializer(kino)
+#         return Response(serializer.data)
+#     def put(self,request,pk):
+#         kino = Kino.objects.get(id=pk)
+#         serializer = KinoCreateSerializer(kino, data=request.data, partial=True)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         return Response(serializer.errors)
 
-class KinolarApiView(APIView):
-    def get(self, request):
-        kinolar = Kino.objects.all()
-        serializer = KinoSerializer(kinolar, many=True)
+class KinoViewSet(ModelViewSet):
+    queryset = Kino.objects.all()
+    serializer_class = KinoSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['nom']
+    ordering_fields = ['yil']
+    @action(detail=True, methods=["GET", "POST"])
+    def aktyorlar(self, request, pk):
+        if request.method == "POST":
+            kino = Kino.objects.get(id=pk)
+            serializer = AktyorSerializer(data=request.data)
+            if serializer.is_valid():
+
+                actor = Aktyor.objects.create(
+                    ism=serializer.validated_data.get('ism'),
+                    davlat=serializer.validated_data.get('davlat'),
+                    jins=serializer.validated_data.get('jins'),
+                    tugilgan_yil=serializer.validated_data.get('tugilgan_yil')
+                )
+
+                kino.aktyorlar.add(actor)
+                kino.save()
+
+        kino = Kino.objects.get(id=pk)
+        actors = kino.aktyorlar.all()
+        serializer = AktyorSerializer(actors, many=True)
         return Response(serializer.data)
 
-    def post(self, request):
-        serializer = KinoCreateSerializer(data=request.data)
-        if serializer.is_valid():
-
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-class KinoDetailApiView(APIView):
-    def get(self,request, pk):
-        kino = Kino.objects.get(id=pk)
-        serializer = KinoSerializer(kino)
-        return Response(serializer.data)
-    def put(self,request,pk):
-        kino = Kino.objects.get(id=pk)
-        serializer = KinoCreateSerializer(kino, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors)
 class IzohModelViewset(ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
