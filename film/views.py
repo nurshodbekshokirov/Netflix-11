@@ -26,27 +26,27 @@ class HelloAPI(APIView):
         }
         return Response(content)
 
-class AktyorlarAPIView(APIView):
-    def get(self,request):
-        aktyorlar = Aktyor.objects.all()
-        serializer = AktyorSerializer(aktyorlar, many=True)
-        return Response(serializer.data)
-    def post(self,request):
-
-        serializer = AktyorSerializer(data=request.data)
-        if serializer.is_valid():
-            Aktyor.objects.create(
-                ism = serializer.validated_data.get('ism'),
-                davlat = serializer.validated_data.get('davlat'),
-                jins = serializer.validated_data.get('jins'),
-                tugilgan_yil = serializer.validated_data.get('tugilgan_yil')
-            )
-            content = {
-                "success": "True",
-                "ma'lumot":serializer.data
-            }
-            return Response(content)
-        return Response({"success":"False", "xatolik":serializer.errors})
+# class AktyorlarAPIView(APIView):
+#     def get(self,request):
+#         aktyorlar = Aktyor.objects.all()
+#         serializer = AktyorSerializer(aktyorlar, many=True)
+#         return Response(serializer.data)
+#     def post(self,request):
+#
+#         serializer = AktyorSerializer(data=request.data)
+#         if serializer.is_valid():
+#             Aktyor.objects.create(
+#                 ism = serializer.validated_data.get('ism'),
+#                 davlat = serializer.validated_data.get('davlat'),
+#                 jins = serializer.validated_data.get('jins'),
+#                 tugilgan_yil = serializer.validated_data.get('tugilgan_yil')
+#             )
+#             content = {
+#                 "success": "True",
+#                 "ma'lumot":serializer.data
+#             }
+#             return Response(content)
+#         return Response({"success":"False", "xatolik":serializer.errors})
 class AktyorVIEWsET(ModelViewSet):
     queryset = Aktyor.objects.all()
     serializer_class = AktyorSerializer

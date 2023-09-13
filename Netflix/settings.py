@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'film',
     'rest_framework',
     'rest_framework.authtoken',
+    'drf_yasg',
 
 ]
 
